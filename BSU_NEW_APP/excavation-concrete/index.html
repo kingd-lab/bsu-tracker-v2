@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>Excavation &amp; Concrete Works</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#eae6dd; --card:#f8f6f1; --tx:#1c1b18; --mut:#6f6a60; --bd:#d6d0c3;
+  --ac:#3b5d52; --ac-ink:#ffffff;
+  --red:#9c3b2e; --grn:#3c6b4f; --amber:#966a1f;
+  --radius:3px;
+}
+@media(prefers-color-scheme:dark){
+  :root{ --bg:#141413; --card:#1d1c1a; --tx:#eeeae1; --mut:#948e80; --bd:#33312c; }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--tx); padding:0 0 32px;
+  font-family:'IBM Plex Sans',system-ui,sans-serif; font-size:15px; line-height:1.45;
+  max-width:640px; margin:auto;
+}
+.wrap{padding:0 16px}
+.masthead{
+  padding:22px 16px 16px; border-bottom:2px solid var(--tx);
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+}
+.masthead h1{
+  font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:21px; margin:0;
+  letter-spacing:-0.01em;
+}
+.masthead .tag{
+  font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--mut);
+  border:1px solid var(--bd); border-radius:2px; padding:3px 7px; white-space:nowrap;
+}
+h2{
+  font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:15px; margin:0 0 12px;
+  color:var(--tx);
+}
+.card{
+  background:var(--card); border:1px solid var(--bd); border-left:3px solid var(--ac);
+  border-radius:var(--radius); padding:16px; margin:14px 16px;
+}
+label{
+  display:block; font-size:11.5px; color:var(--mut); margin:12px 0 4px;
+  font-family:'IBM Plex Mono',monospace; letter-spacing:0.01em;
+}
+input,select,textarea{
+  width:100%; padding:9px 2px; border:none; border-bottom:1.5px solid var(--bd);
+  border-radius:0; background:transparent; color:var(--tx); font:inherit; font-size:15px;
+}
+input:focus,select:focus,textarea:focus{ outline:none; border-bottom-color:var(--ac); }
+input[type=file]{ border:1px dashed var(--bd); padding:10px; font-size:13px; }
+button{
+  width:100%; padding:11px; margin-top:14px; border:none; border-radius:var(--radius);
+  background:var(--ac); color:var(--ac-ink); font-family:'Space Grotesk',sans-serif;
+  font-weight:600; font-size:14.5px; letter-spacing:0.01em; cursor:pointer;
+}
+button:active{ opacity:0.85; }
+button.ghost{
+  background:transparent; color:var(--tx); border:1px solid var(--bd); font-weight:500;
+}
+.row{display:grid; grid-template-columns:1fr 1fr; gap:0 16px}
+.tabs{
+  display:flex; gap:0; margin:16px 16px 0; border-bottom:1px solid var(--bd);
+  overflow-x:auto;
+}
+.tabs button{
+  all:unset; cursor:pointer; flex:1; text-align:center; padding:10px 4px;
+  font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:500;
+  color:var(--mut); border-bottom:2px solid transparent; margin:0; white-space:nowrap;
+}
+.tabs button.on{ color:var(--tx); font-weight:700; border-bottom-color:var(--ac); }
+.kpi{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--bd); border:1px solid var(--bd); border-radius:var(--radius); overflow:hidden; }
+.kpi div{ background:var(--card); padding:12px 14px; }
+.kpi b{ display:block; font-family:'IBM Plex Mono',monospace; font-size:18px; font-variant-numeric:tabular-nums; }
+.kpi span{ font-size:11px; color:var(--mut); }
+table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+th{
+  text-align:left; font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:11.5px;
+  color:var(--mut); padding:6px 6px; border-bottom:1.5px solid var(--tx);
+}
+td{ padding:7px 6px; border-bottom:1px solid var(--bd); font-variant-numeric:tabular-nums; }
+td:nth-child(1){ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--mut); }
+.sc{ overflow-x:auto; max-height:360px; overflow-y:auto; }
+.msg{ font-size:13px; margin-top:8px; color:var(--mut); }
+.err{ color:var(--red); } .ok{ color:var(--grn); } .warn{ color:var(--amber); }
+.hide{ display:none; }
+.badge{
+  display:inline-block; padding:1px 6px; font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px; border:1px solid currentColor; border-radius:2px;
+}
+.b-ok{ color:var(--grn); } .b-dupe{ color:var(--amber); } .b-err{ color:var(--red); }
+.out{ color:var(--red); } .in{ color:var(--grn); }
+.hint{ font-size:11.5px; color:var(--mut); min-height:16px; font-family:'IBM Plex Mono',monospace; }
+
+</head>
+<body>
+<div class="masthead"><h1>Excavation & Concrete</h1><span class="tag">Progress & materials</span></div>
+
+<div id="login" class="card">
+  <h2>Sign in</h2>
+  <label>Username</label><input id="u" autocapitalize="none">
+  <label>Password</label><input id="p" type="password">
+  <button onclick="doLogin()">Sign in</button><div id="lm" class="msg err"></div>
+</div>
+
+<div id="app" class="hide">
+  <div class="tabs">
+    <button class="on" data-t="log">Progress</button><button data-t="exp">Expense</button>
+    <button data-t="sum">Summary</button><button data-t="imp">Import</button>
+  </div>
+
+  <div id="t-log" class="card">
+    <h2>Daily progress</h2>
+    <div class="row"><div><label>Date</label><input id="pd" type="date"></div><div><label>Site</label><select id="ps"></select></div></div>
+    <div class="row"><div><label>Columns achieved</label><input id="pc" type="number" inputmode="numeric"></div><div><label>Excavation length (m, optional)</label><input id="pl" type="number" inputmode="decimal"></div></div>
+    <label>Notes</label><input id="pn">
+    <button onclick="saveProgress()">Save progress</button><div id="pm" class="msg"></div>
+  </div>
+
+  <div id="t-exp" class="card hide">
+    <h2>Excavation / Concrete expense</h2>
+    <div class="row"><div><label>Date</label><input id="ed" type="date"></div><div><label>Site</label><select id="es"></select></div></div>
+    <label>Category</label><select id="ec"></select>
+    <label>Description</label><input id="edsc">
+    <div class="row"><div><label>Quantity</label><input id="eq" type="number"></div><div><label>Unit</label><input id="eu" placeholder="m, bags, trips…"></div></div>
+    <div class="row"><div><label>Amount (₦)</label><input id="ea" type="number"></div><div><label>Vendor</label><input id="ev"></div></div>
+    <button onclick="saveExp()">Save expense</button><div id="em" class="msg"></div>
+  </div>
+
+  <div id="t-sum" class="hide">
+    <div class="card"><h2>Totals</h2><div class="kpi" id="kpi"></div></div>
+    <div class="card"><h2>Recent progress</h2><div class="sc"><table id="ptab"></table></div></div>
+    <div class="card"><h2>Cost by category</h2><div class="sc"><table id="etab"></table></div></div>
+  </div>
+
+  <div id="t-imp" class="hide">
+    <div class="card">
+      <h2>1. Download template</h2>
+      <p class="msg" style="margin-top:0">One Excel file, two sheets: <b>Progress</b> and <b>Expenses</b>. A third sheet lists the exact category names to use — Excel data-validation dropdowns aren't supported by the generator, so typos are caught at import time instead.</p>
+      <button onclick="downloadTemplate()">Download template (.xlsx)</button>
+    </div>
+    <div class="card">
+      <h2>2. Upload &amp; review</h2>
+      <label>Site for rows with no Site column</label><select id="impSite"></select>
+      <label>Filled template</label><input id="impFile" type="file" accept=".xlsx,.xls">
+      <div id="impSummary" class="msg"></div>
+      <div class="sc"><table id="impTab"></table></div>
+      <button id="impBtn" class="hide" onclick="runImport()">Import valid rows</button>
+      <div id="impMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <div style="margin:14px 16px 0"><button class="ghost" onclick="logout()">Sign out</button></div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbyvEl2WHRz8-CTbIBHXIDpSC5zyGYcFjO4SggfQWxPj7ldHK7QneBXrNKD2BB6wPNO0/exec';
+const EXC_CATS = ['Excavation of Trenches','Excavation Equipment Hire'];
+const CONCRETE_CATS = ['Column Blinding','Column Base','Trenches Casting','Columns Before Slab','Slab','Kickers',
+  'Column on Slab','Lintel','Beams & First Floor Slab','First Floor Columns','First Floor Lintel','Roof Beam',
+  'Mason/Poker Labour','Poker Rental','Bentonite'];
+const ALL_CATS = EXC_CATS.concat(CONCRETE_CATS);
+const $ = id => document.getElementById(id);
+const naira = n => '₦' + Math.round(n||0).toLocaleString();
+let me = null, sitesCache = [], existingExpenses = [], existingProgress = [];
+
+async function call(action, data){
+  const q = data ? {payload: JSON.stringify(Object.assign({action, token: me && me.token}, data))}
+                 : {action, token: me ? me.token : ''};
+  const r = await (await fetch(API_URL + '?' + new URLSearchParams(q))).json();
+  if (r.error) throw new Error(r.error);
+  return r;
+}
+
+async function doLogin(){
+  $('lm').textContent = '';
+  try { me = await call('login', {username: $('u').value.trim(), password: $('p').value});
+    localStorage.setItem('ec_me', JSON.stringify(me)); start(); }
+  catch(e){ $('lm').textContent = e.message; }
+}
+function logout(){ localStorage.removeItem('ec_me'); location.reload(); }
+
+async function start(){
+  $('login').classList.add('hide'); $('app').classList.remove('hide');
+  const today = new Date().toISOString().slice(0,10);
+  $('pd').value = $('ed').value = today;
+  $('ec').innerHTML =
+    `<optgroup label="Excavation">${EXC_CATS.map(c=>`<option>${c}</option>`).join('')}</optgroup>` +
+    `<optgroup label="Concrete Works">${CONCRETE_CATS.map(c=>`<option>${c}</option>`).join('')}</optgroup>`;
+  sitesCache = [me.site];
+  if (me.role !== 'Site Manager') {
+    try { sitesCache = (await call('getSites')).sites.map(s => s['Site Name'] || s.name); } catch(e){}
+  }
+  const opts = sitesCache.map(s => `<option>${s}</option>`).join('');
+  $('ps').innerHTML = $('es').innerHTML = $('impSite').innerHTML = opts;
+  if (me.role === 'Site Manager') { $('ps').disabled = $('es').disabled = true; }
+  loadSummary();
+}
+
+async function saveProgress(){
+  $('pm').className='msg'; $('pm').textContent='Saving…';
+  try {
+    let notes = $('pn').value;
+    if ($('pl').value) notes = `Length: ${$('pl').value}m${notes ? '; ' + notes : ''}`;
+    const entry = {date:$('pd').value, site:$('ps').value, columnsAchieved:$('pc').value, notes};
+    await call('addColumnProgress', {entry});
+    $('pm').className='msg ok'; $('pm').textContent='Saved';
+    ['pc','pl','pn'].forEach(id => $(id).value='');
+    loadSummary();
+  } catch(e){ $('pm').className='msg err'; $('pm').textContent = e.message; }
+}
+
+async function saveExp(){
+  $('em').className='msg'; $('em').textContent='Saving…';
+  try {
+    const expense = {date:$('ed').value, site:$('es').value, category:$('ec').value, description:$('edsc').value,
+      quantity:$('eq').value, unit:$('eu').value, amount:$('ea').value, vendor:$('ev').value};
+    await call('submitExpense', {expense});
+    $('em').className='msg ok'; $('em').textContent='Saved';
+    ['edsc','eq','eu','ea','ev'].forEach(id => $(id).value='');
+    loadSummary();
+  } catch(e){ $('em').className='msg err'; $('em').textContent = e.message; }
+}
+
+async function loadSummary(){
+  try {
+    const [cp, ex] = await Promise.all([call('getColumnProgress'), call('getExpenses')]);
+    existingProgress = cp.entries; existingExpenses = ex.expenses;
+    const t = cp.totals;
+    const excCost = ex.expenses.filter(e => EXC_CATS.includes(e.Category)).reduce((s,e)=>s+(+e.Amount||0),0);
+    const conCost = ex.expenses.filter(e => CONCRETE_CATS.includes(e.Category)).reduce((s,e)=>s+(+e.Amount||0),0);
+    $('kpi').innerHTML = [
+      ['Columns achieved', t.columnsAchieved.toLocaleString()], ['Cost / column', naira(t.costPerColumn)],
+      ['Excavation cost', naira(excCost)], ['Concrete cost', naira(conCost)]
+    ].map(([k,v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('');
+    $('ptab').innerHTML = '<tr><th>Date</th><th>Site</th><th>Columns</th><th>Notes</th></tr>' +
+      cp.entries.slice(0,12).map(e => `<tr><td>${String(e.Date).slice(0,10)}</td><td>${e.Site}</td><td>${e['Columns Achieved']}</td><td>${e.Notes||''}</td></tr>`).join('');
+    const by = {}; ex.expenses.filter(e=>ALL_CATS.includes(e.Category)).forEach(e => by[e.Category] = (by[e.Category]||0) + (+e.Amount||0));
+    $('etab').innerHTML = Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([k,v]) => `<tr><td>${k}</td><td>${naira(v)}</td></tr>`).join('');
+  } catch(e){ $('kpi').innerHTML = '<span class="err">' + e.message + '</span>'; }
+}
+
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x===b));
+  ['log','exp','sum','imp'].forEach(t => $('t-'+t).classList.toggle('hide', t !== b.dataset.t));
+});
+
+// ---------- Template download ----------
+function downloadTemplate(){
+  const wb = XLSX.utils.book_new();
+  const prog = XLSX.utils.aoa_to_sheet([
+    ['Site','Date','Columns Achieved','Length (m)','Notes'],
+    [sitesCache[0]||'', '2026-09-01', 12, 61, 'example row — delete before importing']
+  ]);
+  const exp = XLSX.utils.aoa_to_sheet([
+    ['Site','Date','Category','Description','Quantity','Unit','Amount','Vendor'],
+    [sitesCache[0]||'', '2026-09-01', 'Excavation of Trenches', 'example row — delete before importing', 61, 'm', 152500, '']
+  ]);
+  const cats = XLSX.utils.aoa_to_sheet([['Allowed categories (spelling must match exactly)'], ...ALL_CATS.map(c=>[c])]);
+  XLSX.utils.book_append_sheet(wb, prog, 'Progress');
+  XLSX.utils.book_append_sheet(wb, exp, 'Expenses');
+  XLSX.utils.book_append_sheet(wb, cats, 'Categories (reference)');
+  XLSX.writeFile(wb, 'excavation-concrete-template.xlsx');
+}
+
+// ---------- Import ----------
+let parsedRows = []; // {type:'progress'|'expense', data, status, reason}
+
+function excelDateToISO(v){
+  if (v instanceof Date) return v.toISOString().slice(0,10);
+  if (typeof v === 'number') { const d = new Date(Math.round((v-25569)*86400*1000)); return d.toISOString().slice(0,10); }
+  if (typeof v === 'string') {
+    const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (m) { let y=+m[3]; if(y<100) y+=2000; return `${y}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`; }
+    if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0,10);
+  }
+  return null;
+}
+
+$('impFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  $('impSummary').textContent = 'Reading…'; $('impBtn').classList.add('hide'); $('impTab').innerHTML='';
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array', cellDates:true});
+    parsedRows = [];
+    const defaultSite = $('impSite').value;
+
+    const readSheet = (name, type) => {
+      if (!wb.Sheets[name]) return;
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], {defval:''});
+      rows.forEach(r => {
+        if (type === 'progress') {
+          const date = excelDateToISO(r['Date']);
+          const site = String(r['Site']||defaultSite).trim();
+          const columns = Number(r['Columns Achieved']);
+          const length = r['Length (m)'] !== '' ? Number(r['Length (m)']) : null;
+          const notes = String(r['Notes']||'').trim();
+          let status='ok', reason='';
+          if (!date) { status='err'; reason='Bad or missing date'; }
+          else if (!site || !sitesCache.includes(site)) { status='err'; reason='Unknown site: "'+site+'"'; }
+          else if (!columns || columns<=0) { status='err'; reason='Columns Achieved must be a positive number'; }
+          else if (existingProgress.some(e => String(e.Date).slice(0,10)===date && e.Site===site && Number(e['Columns Achieved'])===columns)) {
+            status='dupe'; reason='Same date/site/columns already logged';
+          }
+          parsedRows.push({type:'progress', date, site, columns, length, notes, status, reason});
+        } else {
+          const date = excelDateToISO(r['Date']);
+          const site = String(r['Site']||defaultSite).trim();
+          const category = String(r['Category']||'').trim();
+          const amount = Number(r['Amount']);
+          const desc = String(r['Description']||'').trim();
+          const qty = r['Quantity']!=='' ? Number(r['Quantity']) : '';
+          const unit = String(r['Unit']||'').trim();
+          const vendor = String(r['Vendor']||'').trim();
+          let status='ok', reason='';
+          if (!date) { status='err'; reason='Bad or missing date'; }
+          else if (!site || !sitesCache.includes(site)) { status='err'; reason='Unknown site: "'+site+'"'; }
+          else if (!ALL_CATS.includes(category)) { status='err'; reason='Category not recognised: "'+category+'"'; }
+          else if (!amount || amount<=0) { status='err'; reason='Amount must be a positive number'; }
+          else if (existingExpenses.some(e => String(e.Date).slice(0,10)===date && e.Site===site && Number(e.Amount)===amount && (e.Description||'')===desc)) {
+            status='dupe'; reason='Matches an existing expense (same date/site/amount/description)';
+          }
+          parsedRows.push({type:'expense', date, site, category, desc, qty, unit, amount, vendor, status, reason});
+        }
+      });
+    };
+    readSheet('Progress', 'progress');
+    readSheet('Expenses', 'expense');
+
+    if (!parsedRows.length) { $('impSummary').innerHTML = '<span class="err">No rows found. Use the downloaded template — sheet names must be exactly "Progress" and "Expenses".</span>'; return; }
+
+    const ok = parsedRows.filter(r=>r.status==='ok').length;
+    const dupe = parsedRows.filter(r=>r.status==='dupe').length;
+    const err = parsedRows.filter(r=>r.status==='err').length;
+    $('impSummary').innerHTML = `${parsedRows.length} rows: <span class="ok">${ok} ready</span>, <span class="warn">${dupe} duplicates (skipped)</span>, <span class="err">${err} errors</span>`;
+    $('impTab').innerHTML = '<tr><th>Type</th><th>Date</th><th>Site</th><th>Detail</th><th>Amount</th><th>Status</th></tr>' +
+      parsedRows.map(r => {
+        const badge = r.status==='ok' ? '<span class="badge b-ok">OK</span>' : r.status==='dupe' ? `<span class="badge b-dupe">DUPLICATE</span>` : `<span class="badge b-err">${r.reason}</span>`;
+        const detail = r.type==='progress' ? `${r.columns} columns${r.length?' / '+r.length+'m':''}` : `${r.category} — ${r.desc}`;
+        return `<tr><td>${r.type}</td><td>${r.date||''}</td><td>${r.site}</td><td>${detail}</td><td>${r.type==='expense'?naira(r.amount):''}</td><td>${badge}</td></tr>`;
+      }).join('');
+    if (ok > 0) $('impBtn').classList.remove('hide');
+  } catch(e){ $('impSummary').innerHTML = '<span class="err">Could not read file: '+e.message+'</span>'; }
+});
+
+async function runImport(){
+  $('impMsg').className='msg'; $('impMsg').textContent='Importing…'; $('impBtn').disabled = true;
+  try {
+    const progEntries = parsedRows.filter(r=>r.type==='progress' && r.status==='ok')
+      .map(r => ({date:r.date, site:r.site, columnsAchieved:r.columns,
+        notes: (r.length ? `Length: ${r.length}m; ` : '') + r.notes}));
+    const expEntries = parsedRows.filter(r=>r.type==='expense' && r.status==='ok')
+      .map(r => ({date:r.date, site:r.site, category:r.category, description:r.desc, quantity:r.qty, unit:r.unit, amount:r.amount, vendor:r.vendor}));
+
+    let progResult = {count:0}, expResult = {count:0};
+    if (progEntries.length) progResult = await call('bulkAddColumnProgress', {entries: progEntries});
+    if (expEntries.length) expResult = await call('submitExpensesBulk', {expenses: expEntries});
+
+    $('impMsg').className='msg ok';
+    $('impMsg').textContent = `Imported ${progResult.count||0} progress rows and ${expResult.count||0} expenses.`;
+    $('impBtn').classList.add('hide');
+    loadSummary();
+  } catch(e){ $('impMsg').className='msg err'; $('impMsg').textContent = e.message; }
+  $('impBtn').disabled = false;
+}
+
+try { const s = JSON.parse(localStorage.getItem('ec_me')); if (s && s.token) { me = s; start(); } } catch(e){}
+</script>
+</body>
+</html>

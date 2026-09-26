@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>Block Production</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#eae6dd; --card:#f8f6f1; --tx:#1c1b18; --mut:#6f6a60; --bd:#d6d0c3;
+  --ac:#a5431f; --ac-ink:#ffffff;
+  --red:#9c3b2e; --grn:#3c6b4f; --amber:#966a1f;
+  --radius:3px;
+}
+@media(prefers-color-scheme:dark){
+  :root{ --bg:#141413; --card:#1d1c1a; --tx:#eeeae1; --mut:#948e80; --bd:#33312c; }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--tx); padding:0 0 32px;
+  font-family:'IBM Plex Sans',system-ui,sans-serif; font-size:15px; line-height:1.45;
+  max-width:640px; margin:auto;
+}
+.wrap{padding:0 16px}
+.masthead{
+  padding:22px 16px 16px; border-bottom:2px solid var(--tx);
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+}
+.masthead h1{
+  font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:21px; margin:0;
+  letter-spacing:-0.01em;
+}
+.masthead .tag{
+  font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--mut);
+  border:1px solid var(--bd); border-radius:2px; padding:3px 7px; white-space:nowrap;
+}
+h2{
+  font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:15px; margin:0 0 12px;
+  color:var(--tx);
+}
+.card{
+  background:var(--card); border:1px solid var(--bd); border-left:3px solid var(--ac);
+  border-radius:var(--radius); padding:16px; margin:14px 16px;
+}
+label{
+  display:block; font-size:11.5px; color:var(--mut); margin:12px 0 4px;
+  font-family:'IBM Plex Mono',monospace; letter-spacing:0.01em;
+}
+input,select,textarea{
+  width:100%; padding:9px 2px; border:none; border-bottom:1.5px solid var(--bd);
+  border-radius:0; background:transparent; color:var(--tx); font:inherit; font-size:15px;
+}
+input:focus,select:focus,textarea:focus{ outline:none; border-bottom-color:var(--ac); }
+input[type=file]{ border:1px dashed var(--bd); padding:10px; font-size:13px; }
+button{
+  width:100%; padding:11px; margin-top:14px; border:none; border-radius:var(--radius);
+  background:var(--ac); color:var(--ac-ink); font-family:'Space Grotesk',sans-serif;
+  font-weight:600; font-size:14.5px; letter-spacing:0.01em; cursor:pointer;
+}
+button:active{ opacity:0.85; }
+button.ghost{
+  background:transparent; color:var(--tx); border:1px solid var(--bd); font-weight:500;
+}
+.row{display:grid; grid-template-columns:1fr 1fr; gap:0 16px}
+.tabs{
+  display:flex; gap:0; margin:16px 16px 0; border-bottom:1px solid var(--bd);
+  overflow-x:auto;
+}
+.tabs button{
+  all:unset; cursor:pointer; flex:1; text-align:center; padding:10px 4px;
+  font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:500;
+  color:var(--mut); border-bottom:2px solid transparent; margin:0; white-space:nowrap;
+}
+.tabs button.on{ color:var(--tx); font-weight:700; border-bottom-color:var(--ac); }
+.kpi{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--bd); border:1px solid var(--bd); border-radius:var(--radius); overflow:hidden; }
+.kpi div{ background:var(--card); padding:12px 14px; }
+.kpi b{ display:block; font-family:'IBM Plex Mono',monospace; font-size:18px; font-variant-numeric:tabular-nums; }
+.kpi span{ font-size:11px; color:var(--mut); }
+table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+th{
+  text-align:left; font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:11.5px;
+  color:var(--mut); padding:6px 6px; border-bottom:1.5px solid var(--tx);
+}
+td{ padding:7px 6px; border-bottom:1px solid var(--bd); font-variant-numeric:tabular-nums; }
+td:nth-child(1){ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--mut); }
+.sc{ overflow-x:auto; max-height:360px; overflow-y:auto; }
+.msg{ font-size:13px; margin-top:8px; color:var(--mut); }
+.err{ color:var(--red); } .ok{ color:var(--grn); } .warn{ color:var(--amber); }
+.hide{ display:none; }
+.badge{
+  display:inline-block; padding:1px 6px; font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px; border:1px solid currentColor; border-radius:2px;
+}
+.b-ok{ color:var(--grn); } .b-dupe{ color:var(--amber); } .b-err{ color:var(--red); }
+.out{ color:var(--red); } .in{ color:var(--grn); }
+.hint{ font-size:11.5px; color:var(--mut); min-height:16px; font-family:'IBM Plex Mono',monospace; }
+
+</head>
+<body>
+<div class="masthead"><h1>Block Production</h1><span class="tag">Production & materials</span></div>
+
+<div id="login" class="card">
+  <h2>Sign in</h2>
+  <label>Username</label><input id="u" autocapitalize="none">
+  <label>Password</label><input id="p" type="password">
+  <button onclick="doLogin()">Sign in</button><div id="lm" class="msg err"></div>
+</div>
+
+<div id="app" class="hide">
+  <div class="tabs">
+    <button class="on" data-t="log">Log</button><button data-t="exp">Expense</button>
+    <button data-t="sum">Summary</button><button data-t="imp">Import</button>
+  </div>
+
+  <div id="t-log" class="card">
+    <h2>Daily production</h2>
+    <div class="row"><div><label>Date</label><input id="bd" type="date"></div><div><label>Site</label><select id="bs"></select></div></div>
+    <div class="row"><div><label>Cement (bags)</label><input id="bc" type="number" inputmode="decimal"></div><div><label>Blocks produced</label><input id="bb" type="number" inputmode="numeric"></div></div>
+    <div class="row"><div><label>Labour rate / bag (₦)</label><input id="br" type="number" value="2900"></div><div><label>Rate / piece (₦)</label><input id="bp" type="number" value="100"></div></div>
+    <label>Pieces counted (blank = blocks produced)</label><input id="bn" type="number">
+    <label>Notes</label><input id="bt">
+    <div id="bprev" class="msg"></div>
+    <button onclick="saveProd()">Save production</button><div id="bm" class="msg"></div>
+  </div>
+
+  <div id="t-exp" class="card hide">
+    <h2>Block-related expense</h2>
+    <div class="row"><div><label>Date</label><input id="ed" type="date"></div><div><label>Site</label><select id="es"></select></div></div>
+    <label>Category</label><select id="ec"></select>
+    <label>Description</label><input id="edsc">
+    <div class="row"><div><label>Quantity</label><input id="eq" type="number"></div><div><label>Unit</label><input id="eu" placeholder="bags, trips…"></div></div>
+    <div class="row"><div><label>Amount (₦)</label><input id="ea" type="number"></div><div><label>Vendor</label><input id="ev"></div></div>
+    <button onclick="saveExp()">Save expense</button><div id="em" class="msg"></div>
+  </div>
+
+  <div id="t-sum" class="hide">
+    <div class="card"><h2>Totals</h2><div class="kpi" id="kpi"></div></div>
+    <div class="card"><h2>Recent production</h2><div class="sc"><table id="ptab"></table></div></div>
+    <div class="card"><h2>Block expenses by category</h2><div class="sc"><table id="etab"></table></div></div>
+  </div>
+  <div id="t-imp" class="hide">
+    <div class="card">
+      <h2>1. Download template</h2>
+      <p class="msg" style="margin-top:0">One Excel file, two sheets: <b>Production</b> and <b>Expenses</b>. A third sheet lists the exact category names — Excel dropdowns aren't supported by the generator, so typos are caught at import time instead.</p>
+      <button onclick="downloadTemplate()">Download template (.xlsx)</button>
+    </div>
+    <div class="card">
+      <h2>2. Upload &amp; review</h2>
+      <label>Site for rows with no Site column</label><select id="impSite"></select>
+      <label>Filled template</label><input id="impFile" type="file" accept=".xlsx,.xls">
+      <div id="impSummary" class="msg"></div>
+      <div class="sc"><table id="impTab"></table></div>
+      <button id="impBtn" class="hide" onclick="runImport()">Import valid rows</button>
+      <div id="impMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <div style="margin:14px 16px 0"><button class="ghost" onclick="logout()">Sign out</button></div>
+</div>
+
+<script>
+// Same backend as the main expense tracker. Nothing to change there.
+const API_URL = 'https://script.google.com/macros/s/AKfycbyvEl2WHRz8-CTbIBHXIDpSC5zyGYcFjO4SggfQWxPj7ldHK7QneBXrNKD2BB6wPNO0/exec';
+// Categories that count as block-production costs (matches the main app's group).
+const BLOCK_CATS = ['Cement','Sharp Sand','plaster Sand','Burnt Bricks','Water Supply','Store Construction','Block Moulding Labour','Block Production'];
+const $ = id => document.getElementById(id);
+const naira = n => '₦' + Math.round(n||0).toLocaleString();
+let me = null;
+
+async function call(action, data){
+  const q = data ? {payload: JSON.stringify(Object.assign({action, token: me && me.token}, data))}
+                 : {action, token: me ? me.token : ''};
+  const r = await (await fetch(API_URL + '?' + new URLSearchParams(q))).json();
+  if (r.error) throw new Error(r.error);
+  return r;
+}
+
+async function doLogin(){
+  $('lm').textContent = '';
+  try {
+    me = await call('login', {username: $('u').value.trim(), password: $('p').value});
+    localStorage.setItem('bp_me', JSON.stringify(me));
+    start();
+  } catch(e){ $('lm').textContent = e.message; }
+}
+function logout(){ localStorage.removeItem('bp_me'); location.reload(); }
+
+async function start(){
+  $('login').classList.add('hide'); $('app').classList.remove('hide');
+  const today = new Date().toISOString().slice(0,10);
+  $('bd').value = $('ed').value = today;
+  $('ec').innerHTML = BLOCK_CATS.map(c => `<option>${c}</option>`).join('');
+  let sites = [me.site];
+  if (me.role !== 'Site Manager') {
+    try { sites = (await call('getSites')).sites.map(s => s['Site Name'] || s.name); } catch(e){}
+  }
+  const opts = sites.map(s => `<option>${s}</option>`).join('');
+  $('bs').innerHTML = $('es').innerHTML = $('impSite').innerHTML = opts;
+  if (me.role === 'Site Manager') $('bs').disabled = $('es').disabled = true;
+  window._sites = sites;
+  ['bc','bb','br','bp','bn'].forEach(id => $(id).addEventListener('input', preview));
+  loadSummary();
+}
+
+function preview(){
+  const c=+$('bc').value||0, b=+$('bb').value||0, r=+$('br').value||0, rp=+$('bp').value||0;
+  const pcs = $('bn').value !== '' ? +$('bn').value : b;
+  $('bprev').textContent = c ? `Avg ${(b/c).toFixed(1)} blocks/bag · Labour ${naira(c*r + pcs*rp)}` : '';
+}
+
+async function saveProd(){
+  $('bm').className='msg'; $('bm').textContent='Saving…';
+  try {
+    const entry = {date:$('bd').value, site:$('bs').value, cementBags:$('bc').value, blocksProduced:$('bb').value,
+      labourRatePerBag:$('br').value, ratePerPiece:$('bp').value, pieces:$('bn').value, notes:$('bt').value};
+    const r = await call('addBlockProduction', {entry});
+    $('bm').className='msg ok'; $('bm').textContent = 'Saved · labour ' + naira(r.totalCost) + ' posted to expenses';
+    ['bc','bb','bn','bt'].forEach(id => $(id).value=''); $('bprev').textContent='';
+    loadSummary();
+  } catch(e){ $('bm').className='msg err'; $('bm').textContent = e.message; }
+}
+
+async function saveExp(){
+  $('em').className='msg'; $('em').textContent='Saving…';
+  try {
+    const expense = {date:$('ed').value, site:$('es').value, category:$('ec').value, description:$('edsc').value,
+      quantity:$('eq').value, unit:$('eu').value, amount:$('ea').value, vendor:$('ev').value};
+    await call('submitExpense', {expense});
+    $('em').className='msg ok'; $('em').textContent='Saved';
+    ['edsc','eq','eu','ea','ev'].forEach(id => $(id).value='');
+    loadSummary();
+  } catch(e){ $('em').className='msg err'; $('em').textContent = e.message; }
+}
+
+async function loadSummary(){
+  try {
+    const [bp, ex] = await Promise.all([call('getBlockProduction'), call('getExpenses')]);
+    existingProd = bp.entries; existingExp = ex.expenses;
+    const t = bp.totals;
+    const blockExp = ex.expenses.filter(e => BLOCK_CATS.includes(e.Category));
+    const spent = blockExp.reduce((s,e) => s + (+e.Amount||0), 0);
+    const cpb = t.blocksProduced ? spent / t.blocksProduced : 0;
+    $('kpi').innerHTML = [
+      ['Blocks made', t.blocksProduced.toLocaleString()], ['Cement bags', t.cementBags.toLocaleString()],
+      ['Avg blocks/bag', t.avgPerCement.toFixed(1)], ['Total block cost', naira(spent)],
+      ['Cost per block', naira(cpb)], ['Labour only', naira(t.totalCost)]
+    ].map(([k,v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('');
+    $('ptab').innerHTML = '<tr><th>Date</th><th>Bags</th><th>Blocks</th><th>Avg</th></tr>' +
+      bp.entries.slice(0,10).map(e => `<tr><td>${String(e.Date).slice(5,10)}</td><td>${e['Cement (Bags)']}</td><td>${e['Blocks Produced']}</td><td>${e['Avg per Cement']}</td></tr>`).join('');
+    const by = {}; blockExp.forEach(e => by[e.Category] = (by[e.Category]||0) + (+e.Amount||0));
+    $('etab').innerHTML = Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([k,v]) => `<tr><td>${k}</td><td>${naira(v)}</td></tr>`).join('');
+  } catch(e){ $('kpi').innerHTML = '<span class="err">' + e.message + '</span>'; }
+}
+
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x===b));
+  ['log','exp','sum','imp'].forEach(t => $('t-'+t).classList.toggle('hide', t !== b.dataset.t));
+});
+
+// ---------- Template download ----------
+function downloadTemplate(){
+  const wb = XLSX.utils.book_new();
+  const prod = XLSX.utils.aoa_to_sheet([
+    ['Site','Date','Cement Bags','Blocks Produced','Pieces','Labour Rate/Bag','Rate/Piece','Notes'],
+    [sitesCacheSafe(), '2026-09-01', 20, 600, 600, 2900, 100, 'example row — delete before importing']
+  ]);
+  const exp = XLSX.utils.aoa_to_sheet([
+    ['Site','Date','Category','Description','Quantity','Unit','Amount','Vendor'],
+    [sitesCacheSafe(), '2026-09-01', 'Cement', 'example row — delete before importing', 20, 'bags', 580000, '']
+  ]);
+  const cats = XLSX.utils.aoa_to_sheet([['Allowed categories (spelling must match exactly)'], ...BLOCK_CATS.map(c=>[c])]);
+  XLSX.utils.book_append_sheet(wb, prod, 'Production');
+  XLSX.utils.book_append_sheet(wb, exp, 'Expenses');
+  XLSX.utils.book_append_sheet(wb, cats, 'Categories (reference)');
+  XLSX.writeFile(wb, 'block-production-template.xlsx');
+}
+function sitesCacheSafe(){ return (window._sites && window._sites[0]) || ''; }
+
+// ---------- Import ----------
+let parsedRows = [];
+let existingProd = [], existingExp = [];
+
+function excelDateToISO(v){
+  if (v instanceof Date) return v.toISOString().slice(0,10);
+  if (typeof v === 'number') { const d = new Date(Math.round((v-25569)*86400*1000)); return d.toISOString().slice(0,10); }
+  if (typeof v === 'string') {
+    const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (m) { let y=+m[3]; if(y<100) y+=2000; return `${y}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`; }
+    if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0,10);
+  }
+  return null;
+}
+
+$('impFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  $('impSummary').textContent = 'Reading…'; $('impBtn').classList.add('hide'); $('impTab').innerHTML='';
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array', cellDates:true});
+    parsedRows = [];
+    const defaultSite = $('impSite').value;
+    const sites = window._sites || [];
+
+    if (wb.Sheets['Production']) {
+      XLSX.utils.sheet_to_json(wb.Sheets['Production'], {defval:''}).forEach(r => {
+        const date = excelDateToISO(r['Date']);
+        const site = String(r['Site']||defaultSite).trim();
+        const cementBags = Number(r['Cement Bags']);
+        const blocksProduced = Number(r['Blocks Produced']);
+        const pieces = r['Pieces']!=='' ? Number(r['Pieces']) : blocksProduced;
+        const labourRatePerBag = r['Labour Rate/Bag']!=='' ? Number(r['Labour Rate/Bag']) : 2900;
+        const ratePerPiece = r['Rate/Piece']!=='' ? Number(r['Rate/Piece']) : 100;
+        const notes = String(r['Notes']||'').trim();
+        let status='ok', reason='';
+        if (!date) { status='err'; reason='Bad or missing date'; }
+        else if (!site || !sites.includes(site)) { status='err'; reason='Unknown site: "'+site+'"'; }
+        else if (!cementBags || cementBags<=0) { status='err'; reason='Cement Bags must be a positive number'; }
+        else if (existingProd.some(x => String(x.Date).slice(0,10)===date && x.Site===site && Number(x['Cement (Bags)'])===cementBags)) {
+          status='dupe'; reason='Same date/site/cement bags already logged';
+        }
+        parsedRows.push({type:'production', date, site, cementBags, blocksProduced, pieces, labourRatePerBag, ratePerPiece, notes, status, reason});
+      });
+    }
+    if (wb.Sheets['Expenses']) {
+      XLSX.utils.sheet_to_json(wb.Sheets['Expenses'], {defval:''}).forEach(r => {
+        const date = excelDateToISO(r['Date']);
+        const site = String(r['Site']||defaultSite).trim();
+        const category = String(r['Category']||'').trim();
+        const amount = Number(r['Amount']);
+        const desc = String(r['Description']||'').trim();
+        const qty = r['Quantity']!=='' ? Number(r['Quantity']) : '';
+        const unit = String(r['Unit']||'').trim();
+        const vendor = String(r['Vendor']||'').trim();
+        let status='ok', reason='';
+        if (!date) { status='err'; reason='Bad or missing date'; }
+        else if (!site || !sites.includes(site)) { status='err'; reason='Unknown site: "'+site+'"'; }
+        else if (!BLOCK_CATS.includes(category)) { status='err'; reason='Category not recognised: "'+category+'"'; }
+        else if (!amount || amount<=0) { status='err'; reason='Amount must be a positive number'; }
+        else if (existingExp.some(x => String(x.Date).slice(0,10)===date && x.Site===site && Number(x.Amount)===amount && (x.Description||'')===desc)) {
+          status='dupe'; reason='Matches an existing expense (same date/site/amount/description)';
+        }
+        parsedRows.push({type:'expense', date, site, category, desc, qty, unit, amount, vendor, status, reason});
+      });
+    }
+
+    if (!parsedRows.length) { $('impSummary').innerHTML = '<span class="err">No rows found. Use the downloaded template — sheet names must be exactly "Production" and "Expenses".</span>'; return; }
+
+    const ok = parsedRows.filter(r=>r.status==='ok').length;
+    const dupe = parsedRows.filter(r=>r.status==='dupe').length;
+    const err = parsedRows.filter(r=>r.status==='err').length;
+    $('impSummary').innerHTML = `${parsedRows.length} rows: <span class="ok">${ok} ready</span>, <span class="warn">${dupe} duplicates (skipped)</span>, <span class="err">${err} errors</span>`;
+    $('impTab').innerHTML = '<tr><th>Type</th><th>Date</th><th>Site</th><th>Detail</th><th>Amount</th><th>Status</th></tr>' +
+      parsedRows.map(r => {
+        const badge = r.status==='ok' ? '<span class="badge b-ok">OK</span>' : r.status==='dupe' ? `<span class="badge b-dupe">DUPLICATE</span>` : `<span class="badge b-err">${r.reason}</span>`;
+        const detail = r.type==='production' ? `${r.cementBags} bags → ${r.blocksProduced} blocks` : `${r.category} — ${r.desc}`;
+        return `<tr><td>${r.type}</td><td>${r.date||''}</td><td>${r.site}</td><td>${detail}</td><td>${r.type==='expense'?naira(r.amount):''}</td><td>${badge}</td></tr>`;
+      }).join('');
+    if (ok > 0) $('impBtn').classList.remove('hide');
+  } catch(e){ $('impSummary').innerHTML = '<span class="err">Could not read file: '+e.message+'</span>'; }
+});
+
+async function runImport(){
+  $('impMsg').className='msg'; $('impMsg').textContent='Importing…'; $('impBtn').disabled = true;
+  try {
+    const prodEntries = parsedRows.filter(r=>r.type==='production' && r.status==='ok')
+      .map(r => ({date:r.date, site:r.site, cementBags:r.cementBags, blocksProduced:r.blocksProduced,
+        pieces:r.pieces, labourRatePerBag:r.labourRatePerBag, ratePerPiece:r.ratePerPiece, notes:r.notes}));
+    const expEntries = parsedRows.filter(r=>r.type==='expense' && r.status==='ok')
+      .map(r => ({date:r.date, site:r.site, category:r.category, description:r.desc, quantity:r.qty, unit:r.unit, amount:r.amount, vendor:r.vendor}));
+
+    let prodResult = {count:0}, expResult = {count:0};
+    if (prodEntries.length) prodResult = await call('bulkAddBlockProduction', {entries: prodEntries});
+    if (expEntries.length) expResult = await call('submitExpensesBulk', {expenses: expEntries});
+
+    $('impMsg').className='msg ok';
+    $('impMsg').textContent = `Imported ${prodResult.count||0} production rows and ${expResult.count||0} expenses.`;
+    $('impBtn').classList.add('hide');
+    loadSummary();
+  } catch(e){ $('impMsg').className='msg err'; $('impMsg').textContent = e.message; }
+  $('impBtn').disabled = false;
+}
+
+try { const s = JSON.parse(localStorage.getItem('bp_me')); if (s && s.token) { me = s; start(); } } catch(e){}
+</script>
+</body>
+</html>

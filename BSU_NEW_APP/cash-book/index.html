@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>Cash Book</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#eae6dd; --card:#f8f6f1; --tx:#1c1b18; --mut:#6f6a60; --bd:#d6d0c3;
+  --ac:#33456b; --ac-ink:#ffffff;
+  --red:#9c3b2e; --grn:#3c6b4f; --amber:#966a1f;
+  --radius:3px;
+}
+@media(prefers-color-scheme:dark){
+  :root{ --bg:#141413; --card:#1d1c1a; --tx:#eeeae1; --mut:#948e80; --bd:#33312c; }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--tx); padding:0 0 32px;
+  font-family:'IBM Plex Sans',system-ui,sans-serif; font-size:15px; line-height:1.45;
+  max-width:640px; margin:auto;
+}
+.wrap{padding:0 16px}
+.masthead{
+  padding:22px 16px 16px; border-bottom:2px solid var(--tx);
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+}
+.masthead h1{
+  font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:21px; margin:0;
+  letter-spacing:-0.01em;
+}
+.masthead .tag{
+  font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--mut);
+  border:1px solid var(--bd); border-radius:2px; padding:3px 7px; white-space:nowrap;
+}
+h2{
+  font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:15px; margin:0 0 12px;
+  color:var(--tx);
+}
+.card{
+  background:var(--card); border:1px solid var(--bd); border-left:3px solid var(--ac);
+  border-radius:var(--radius); padding:16px; margin:14px 16px;
+}
+label{
+  display:block; font-size:11.5px; color:var(--mut); margin:12px 0 4px;
+  font-family:'IBM Plex Mono',monospace; letter-spacing:0.01em;
+}
+input,select,textarea{
+  width:100%; padding:9px 2px; border:none; border-bottom:1.5px solid var(--bd);
+  border-radius:0; background:transparent; color:var(--tx); font:inherit; font-size:15px;
+}
+input:focus,select:focus,textarea:focus{ outline:none; border-bottom-color:var(--ac); }
+input[type=file]{ border:1px dashed var(--bd); padding:10px; font-size:13px; }
+button{
+  width:100%; padding:11px; margin-top:14px; border:none; border-radius:var(--radius);
+  background:var(--ac); color:var(--ac-ink); font-family:'Space Grotesk',sans-serif;
+  font-weight:600; font-size:14.5px; letter-spacing:0.01em; cursor:pointer;
+}
+button:active{ opacity:0.85; }
+button.ghost{
+  background:transparent; color:var(--tx); border:1px solid var(--bd); font-weight:500;
+}
+.row{display:grid; grid-template-columns:1fr 1fr; gap:0 16px}
+.tabs{
+  display:flex; gap:0; margin:16px 16px 0; border-bottom:1px solid var(--bd);
+  overflow-x:auto;
+}
+.tabs button{
+  all:unset; cursor:pointer; flex:1; text-align:center; padding:10px 4px;
+  font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:500;
+  color:var(--mut); border-bottom:2px solid transparent; margin:0; white-space:nowrap;
+}
+.tabs button.on{ color:var(--tx); font-weight:700; border-bottom-color:var(--ac); }
+.kpi{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--bd); border:1px solid var(--bd); border-radius:var(--radius); overflow:hidden; }
+.kpi div{ background:var(--card); padding:12px 14px; }
+.kpi b{ display:block; font-family:'IBM Plex Mono',monospace; font-size:18px; font-variant-numeric:tabular-nums; }
+.kpi span{ font-size:11px; color:var(--mut); }
+table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+th{
+  text-align:left; font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:11.5px;
+  color:var(--mut); padding:6px 6px; border-bottom:1.5px solid var(--tx);
+}
+td{ padding:7px 6px; border-bottom:1px solid var(--bd); font-variant-numeric:tabular-nums; }
+td:nth-child(1){ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--mut); }
+.sc{ overflow-x:auto; max-height:360px; overflow-y:auto; }
+.msg{ font-size:13px; margin-top:8px; color:var(--mut); }
+.err{ color:var(--red); } .ok{ color:var(--grn); } .warn{ color:var(--amber); }
+.hide{ display:none; }
+.badge{
+  display:inline-block; padding:1px 6px; font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px; border:1px solid currentColor; border-radius:2px;
+}
+.b-ok{ color:var(--grn); } .b-dupe{ color:var(--amber); } .b-err{ color:var(--red); }
+.out{ color:var(--red); } .in{ color:var(--grn); }
+.hint{ font-size:11.5px; color:var(--mut); min-height:16px; font-family:'IBM Plex Mono',monospace; }
+
+</head>
+<body>
+<div class="masthead"><h1>Cash Book</h1><span class="tag">Running ledger</span></div>
+
+<div id="login" class="card">
+  <h2>Sign in (Admin only)</h2>
+  <label>Username</label><input id="u" autocapitalize="none">
+  <label>Password</label><input id="p" type="password">
+  <button onclick="doLogin()">Sign in</button><div id="lm" class="msg err"></div>
+</div>
+
+<div id="app" class="hide">
+  <div class="tabs">
+    <button class="on" data-t="entry">Add Entry</button><button data-t="ledger">Ledger</button>
+    <button data-t="sum">Summary</button><button data-t="imp">Import</button>
+  </div>
+
+  <div id="t-entry" class="card">
+    <h2>New transaction</h2>
+    <p class="msg" style="margin-top:0">Leave Date blank to continue the same day as the last entry — matches how a paper cash book is kept.</p>
+    <div class="row"><div><label>Date (optional)</label><input id="cd" type="date"></div><div><label>Site</label><select id="cs"></select></div></div>
+    <label>Description</label><input id="cdesc" oninput="suggestCategory()">
+    <div class="row"><div><label>Money Out (₦)</label><input id="cout" type="number" oninput="suggestCategory()"></div><div><label>Money In (₦)</label><input id="cin" type="number"></div></div>
+    <label>Category <span class="hint" id="chint"></span></label>
+    <select id="ccat"><option value="">— auto-detect from description —</option></select>
+    <button onclick="saveEntry()">Save entry</button><div id="cm" class="msg"></div>
+  </div>
+
+  <div id="t-ledger" class="hide">
+    <div class="card"><h2>Running ledger</h2>
+      <p class="msg" style="margin-top:0">Shown in entry order, same as a paper cash book — not resorted by date.</p>
+      <div class="sc"><table id="ltab"></table></div>
+    </div>
+  </div>
+
+  <div id="t-sum" class="hide">
+    <div class="card"><h2>Totals</h2><div class="kpi" id="kpi"></div></div>
+    <div class="card"><h2>Money out by category</h2><div class="sc"><table id="etab"></table></div></div>
+  </div>
+
+  <div id="t-imp" class="hide">
+    <div class="card">
+      <h2>1. Download template</h2>
+      <p class="msg" style="margin-top:0">One sheet, in the same top-to-bottom order as a paper cash book. Leave Category blank to auto-detect; leave Date blank to continue the previous row's date.</p>
+      <button onclick="downloadTemplate()">Download template (.xlsx)</button>
+    </div>
+    <div class="card">
+      <h2>2. Upload &amp; review</h2>
+      <label>Site for rows with no Site column</label><select id="impSite"></select>
+      <label>Filled template</label><input id="impFile" type="file" accept=".xlsx,.xls">
+      <div id="impSummary" class="msg"></div>
+      <div class="sc"><table id="impTab"></table></div>
+      <button id="impBtn" class="hide" onclick="runImport()">Import valid rows (in order shown)</button>
+      <div id="impMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <div style="margin:14px 16px 0"><button class="ghost" onclick="logout()">Sign out</button></div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbyvEl2WHRz8-CTbIBHXIDpSC5zyGYcFjO4SggfQWxPj7ldHK7QneBXrNKD2BB6wPNO0/exec';
+
+const CATEGORY_GROUPS = {
+  'Accommodation': ['Hotel Accommodation','House Rent','House Cleaning','House Setup Materials'],
+  'Block Production': ['Store Construction','Cement','Burnt Bricks','Water Supply','Sharp Sand','plaster Sand','Block Moulding Labour','Block Production'],
+  'Main Work': ['Chemical','Setting Out Materials','Security','PPE & Safety Equipment','Granite','Site Office'],
+  'Excavation of Trenches': ['Excavation of Trenches','Excavation Equipment Hire'],
+  'Concrete Works': ['Column Blinding','Column Base','Trenches Casting','Columns Before Slab','Slab','Kickers','Column on Slab','Lintel','Beams & First Floor Slab','First Floor Columns','First Floor Lintel','Roof Beam','Mason/Poker Labour','Poker Rental','Bentonite'],
+  'Transportation of Tools': ['Transportation of Tools','Fuel for Transportation'],
+  'Ach Shittu Materials': ['Ach Shittu Materials (Bulk Purchase)'],
+  'Workmanship': ['Mason','Carpenter','Electrician','Plumber','Welder','Painter','General Labour','Workmanship (Other)'],
+  'Other Expenses': ['Iron Rods','Timber','Roofing Materials','Paint','Tiles','Plumbing Materials','Electrical Materials','Doors & Windows','Glass & Aluminium','Blocks','Bricks','Generator Fuel','Diesel','Petrol','Internet & Communication','Equipment Hire','Machinery Repair','Tool Purchase','Haulage','Loading & Offloading','Site Cleaning','Office Supplies','Waste Disposal','Miscellaneous']
+};
+const CATEGORY_FLAT = Object.values(CATEGORY_GROUPS).flat();
+// A light client-side mirror of the backend's guessCategory, used only
+// to show a live hint as you type — the backend does the real
+// auto-categorization on save, using its own fuller keyword list.
+const HINT_KEYWORDS = {
+  'block production':'Block Production','cement':'Block Production','sharp sand':'Block Production','burnt bricks':'Block Production','water':'Block Production',
+  'security':'Main Work','storekeeper':'Main Work','granite':'Main Work','site office':'Main Work',
+  'trench':'Excavation of Trenches','excavation':'Excavation of Trenches',
+  'column':'Concrete Works','casting':'Concrete Works','mason':'Concrete Works','poker':'Concrete Works','bentonite':'Concrete Works',
+  'fuel':'Transportation of Tools','transport':'Transportation of Tools',
+  'hotel':'Accommodation','house rent':'Accommodation'
+};
+
+const $ = id => document.getElementById(id);
+const naira = n => '₦' + Math.round(n||0).toLocaleString();
+let me = null, sites = [], existingLedger = [];
+
+async function call(action, data){
+  const q = data ? {payload: JSON.stringify(Object.assign({action, token: me && me.token}, data))}
+                 : {action, token: me ? me.token : ''};
+  const r = await (await fetch(API_URL + '?' + new URLSearchParams(q))).json();
+  if (r.error) throw new Error(r.error);
+  return r;
+}
+
+async function doLogin(){
+  $('lm').textContent = '';
+  try { me = await call('login', {username: $('u').value.trim(), password: $('p').value});
+    if (me.role !== 'Admin') throw new Error('Cash Book is Admin-only');
+    localStorage.setItem('cb_me', JSON.stringify(me)); start(); }
+  catch(e){ $('lm').textContent = e.message; }
+}
+function logout(){ localStorage.removeItem('cb_me'); location.reload(); }
+
+async function start(){
+  $('login').classList.add('hide'); $('app').classList.remove('hide');
+  let ccatHtml = '<option value="">— auto-detect from description —</option>';
+  Object.keys(CATEGORY_GROUPS).forEach(g => {
+    ccatHtml += `<optgroup label="${g}">` + CATEGORY_GROUPS[g].map(c=>`<option>${c}</option>`).join('') + `</optgroup>`;
+  });
+  $('ccat').innerHTML = ccatHtml;
+  try { sites = (await call('getSites')).sites.map(s => s['Site Name'] || s.name); } catch(e){ sites = []; }
+  const opts = '<option value="ALL">ALL</option>' + sites.map(s => `<option>${s}</option>`).join('');
+  $('cs').innerHTML = $('impSite').innerHTML = opts;
+  loadLedger();
+}
+
+function suggestCategory(){
+  const d = $('cdesc').value.toLowerCase();
+  if (!$('cout').value || !d.trim()) { $('chint').textContent=''; return; }
+  const hit = Object.keys(HINT_KEYWORDS).find(k => d.includes(k));
+  $('chint').textContent = hit ? 'Likely: ' + HINT_KEYWORDS[hit] : 'No confident match — pick one or leave blank';
+}
+
+async function saveEntry(){
+  $('cm').className='msg'; $('cm').textContent='Saving…';
+  try {
+    const entry = {date:$('cd').value, site:$('cs').value, description:$('cdesc').value,
+      moneyOut:$('cout').value, moneyIn:$('cin').value, category:$('ccat').value};
+    const r = await call('addCashBookEntry', {entry});
+    $('cm').className='msg ok';
+    $('cm').textContent = 'Saved' + (r.category ? ' as ' + r.category : '');
+    ['cd','cdesc','cout','cin'].forEach(id => $(id).value=''); $('ccat').value=''; $('chint').textContent='';
+    loadLedger();
+  } catch(e){ $('cm').className='msg err'; $('cm').textContent = e.message; }
+}
+
+async function loadLedger(){
+  try {
+    const cb = await call('getCashBook');
+    existingLedger = cb.entries;
+    $('kpi').innerHTML = [
+      ['Total in', naira(cb.totalIn)], ['Total out', naira(cb.totalOut)], ['Balance', naira(cb.finalBalance)]
+    ].map(([k,v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('');
+    $('ltab').innerHTML = '<tr><th>Date</th><th>Description</th><th>Out</th><th>In</th><th>Balance</th></tr>' +
+      cb.entries.map(e => `<tr><td>${String(e.Date||'').slice(0,10)}</td><td>${e.Description}</td>` +
+        `<td class="out">${e['Money Out']?naira(e['Money Out']):''}</td><td class="in">${e['Money In']?naira(e['Money In']):''}</td>` +
+        `<td>${naira(e.Balance)}</td></tr>`).join('');
+    const by = {};
+    cb.entries.forEach(e => { if (e['Money Out']) by[e.Category||'Uncategorized'] = (by[e.Category||'Uncategorized']||0) + (+e['Money Out']||0); });
+    $('etab').innerHTML = Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([k,v]) => `<tr><td>${k}</td><td>${naira(v)}</td></tr>`).join('');
+  } catch(e){ $('kpi').innerHTML = '<span class="err">' + e.message + '</span>'; }
+}
+
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x===b));
+  ['entry','ledger','sum','imp'].forEach(t => $('t-'+t).classList.toggle('hide', t !== b.dataset.t));
+});
+
+// ---------- Template download ----------
+function downloadTemplate(){
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['Date','Site','Description','Money Out','Money In','Category'],
+    ['2026-09-01', 'ALL', 'Opening balance', '', 30000, ''],
+    ['', 'ALL', 'Security and storekeeper (example — delete before importing)', 12000, '', '']
+  ]);
+  const cats = XLSX.utils.aoa_to_sheet([['Category options (optional — leave blank to auto-detect)'], ...CATEGORY_FLAT.map(c=>[c])]);
+  XLSX.utils.book_append_sheet(wb, ws, 'Cash Book');
+  XLSX.utils.book_append_sheet(wb, cats, 'Categories (reference)');
+  XLSX.writeFile(wb, 'cash-book-template.xlsx');
+}
+
+// ---------- Import ----------
+let parsedRows = [];
+
+function excelDateToISO(v){
+  if (v instanceof Date) return v.toISOString().slice(0,10);
+  if (typeof v === 'number') { const d = new Date(Math.round((v-25569)*86400*1000)); return d.toISOString().slice(0,10); }
+  if (typeof v === 'string') {
+    const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (m) { let y=+m[3]; if(y<100) y+=2000; return `${y}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`; }
+    if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0,10);
+  }
+  return null;
+}
+
+$('impFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  $('impSummary').textContent = 'Reading…'; $('impBtn').classList.add('hide'); $('impTab').innerHTML='';
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array', cellDates:true});
+    const sheetName = wb.Sheets['Cash Book'] ? 'Cash Book' : wb.SheetNames[0];
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {defval:''});
+    parsedRows = [];
+    const defaultSite = $('impSite').value;
+    let lastDate = null;
+
+    rows.forEach(r => {
+      const rawDate = excelDateToISO(r['Date']);
+      if (rawDate) lastDate = rawDate;
+      const date = rawDate || lastDate;
+      const site = String(r['Site']||defaultSite).trim() || 'ALL';
+      const desc = String(r['Description']||'').trim();
+      const out = r['Money Out']!=='' ? Number(r['Money Out']) : 0;
+      const inn = r['Money In']!=='' ? Number(r['Money In']) : 0;
+      const category = String(r['Category']||'').trim();
+      if (!desc && !out && !inn) return; // skip fully blank rows
+
+      let status='ok', reason='';
+      if (!desc) { status='err'; reason='Description is required'; }
+      else if (!out && !inn) { status='err'; reason='Needs an amount in Money Out or Money In'; }
+      else if (category && !CATEGORY_FLAT.includes(category)) { status='err'; reason='Category not recognised: "'+category+'"'; }
+      else if (site !== 'ALL' && !sites.includes(site)) { status='err'; reason='Unknown site: "'+site+'"'; }
+      else if (existingLedger.some(x => String(x.Date||'').slice(0,10)===date && x.Description===desc && Number(x['Money Out']||0)===out && Number(x['Money In']||0)===inn)) {
+        status='dupe'; reason='Matches an existing ledger line (same date/description/amounts)';
+      }
+      parsedRows.push({date, site, desc, out, inn, category, status, reason});
+    });
+
+    if (!parsedRows.length) { $('impSummary').innerHTML = '<span class="err">No rows found. Use the downloaded template.</span>'; return; }
+
+    const ok = parsedRows.filter(r=>r.status==='ok').length;
+    const dupe = parsedRows.filter(r=>r.status==='dupe').length;
+    const err = parsedRows.filter(r=>r.status==='err').length;
+    $('impSummary').innerHTML = `${parsedRows.length} rows, in order: <span class="ok">${ok} ready</span>, <span class="warn">${dupe} duplicates (skipped)</span>, <span class="err">${err} errors</span>` +
+      (err > 0 ? '<br><b>Fix the error rows before importing</b> — importing with rows removed will shift every balance after that point.' : '');
+    $('impTab').innerHTML = '<tr><th>#</th><th>Date</th><th>Description</th><th>Out</th><th>In</th><th>Status</th></tr>' +
+      parsedRows.map((r,i) => {
+        const badge = r.status==='ok' ? '<span class="badge b-ok">OK</span>' : r.status==='dupe' ? '<span class="badge b-dupe">DUPLICATE</span>' : `<span class="badge b-err">${r.reason}</span>`;
+        return `<tr><td>${i+1}</td><td>${r.date||''}</td><td>${r.desc}</td><td class="out">${r.out?naira(r.out):''}</td><td class="in">${r.inn?naira(r.inn):''}</td><td>${badge}</td></tr>`;
+      }).join('');
+    if (err === 0 && ok > 0) $('impBtn').classList.remove('hide');
+  } catch(e){ $('impSummary').innerHTML = '<span class="err">Could not read file: '+e.message+'</span>'; }
+});
+
+async function runImport(){
+  $('impMsg').className='msg'; $('impMsg').textContent='Importing in order…'; $('impBtn').disabled = true;
+  try {
+    // Order matters for the running balance — send every row (skipping
+    // only exact duplicates), in the same order shown above.
+    const entries = parsedRows.filter(r => r.status !== 'dupe').map(r => ({
+      date: r.date, site: r.site, description: r.desc,
+      moneyOut: r.out || '', moneyIn: r.inn || '', category: r.category || ''
+    }));
+    const result = await call('addCashBookEntriesBulk', {entries});
+    $('impMsg').className='msg ok';
+    $('impMsg').textContent = `Imported ${result.count} entries.`;
+    $('impBtn').classList.add('hide');
+    loadLedger();
+  } catch(e){ $('impMsg').className='msg err'; $('impMsg').textContent = e.message; }
+  $('impBtn').disabled = false;
+}
+
+try { const s = JSON.parse(localStorage.getItem('cb_me')); if (s && s.token) { me = s; start(); } } catch(e){}
+</script>
+</body>
+</html>
